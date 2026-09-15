@@ -651,7 +651,8 @@ WORDBACK     lda   #$00
 * The span is the selection when there is one, widened over any markers
 * touching either end, so selecting "word" inside **word** finds the bold and
 * so does selecting all of it. Afterwards the selection covers the same text,
-* with the markers outside it, so another key toggles again.
+* with the markers outside it and the cursor on its first or last character as
+* before, so another key toggles again.
 *
 * Otherwise it is the word at the cursor, less any closing . , ; : ! ? ) " and
 * opening ( " -- so "**word**." toggles off, and "word." becomes "*word*."
@@ -837,7 +838,14 @@ EMPHASIS     sta   EMCHR
              sta   EMRUN
              bcs   :s1
              dec   EMRUN+1
-:s1          lda   EMSEL
+:s1          lda   EMRUN            ; the far end sits ON the last character,
+             ora   EMRUN+1          ; not after it
+             beq   :s3
+             lda   EMRUN
+             bne   :s2
+             dec   EMRUN+1
+:s2          dec   EMRUN
+:s3          lda   EMSEL
              cmp   #$02
              beq   :backward
              jmp   EMRIGHTN         ; the cursor was at the end, and goes back
@@ -861,7 +869,8 @@ EMSELSPAN    lda   #$00
              jsr   HASSEL
              bcc   :go
              rts
-:go          lda   SELLEN
+:go          jsr   SELGRAB          ; the character at the far end too
+             lda   SELLEN
              sta   EMSPAN
              sta   EMRUN
              lda   SELLEN+1
