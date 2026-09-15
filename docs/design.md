@@ -725,6 +725,30 @@ single block move.
 The anchor is a *logical offset*, not an aux address: an address stops meaning
 the same byte as soon as the gap moves past it.
 
+**Both ends are inclusive.** The cursor is a block drawn *on* a character, and
+the anchor is where the cursor stood when selecting began, so the selection is
+every character from one to the other, including the two it starts and ends on.
+It used to stop short of whichever end was further on, which in a forward
+selection left the character under the cursor out. The run looked one
+character short, because the block sat on a letter that was not going to be cut.
+
+`SELRANGE` still measures the half-open run between the two offsets. `SELEND`
+says whether the character at the far end belongs too. It does not when that
+is a line break or the end of the document: neither is drawn, and a cut that
+took the break would join two lines without the newline ever looking selected.
+`SELBOUNDS` adds it for the renderer. `SELGRAB` adds it for everything that
+consumes a selection: cut, copy, delete, typing or pasting over it, and
+emphasis.
+
+That keeps the selection contiguous. A backward selection's extra character is
+one more byte after the gap. A forward selection's is the byte just past the
+gap, on the wrong side of it, so `SELGRAB` steps the cursor over that byte and
+the whole run sits before the gap again. Deleting does not care where the
+cursor was left, but copying does, so `COPYSEL` steps it back.
+
+A consequence: `OA-Space` on a character selects that character at once, and
+typing then replaces it.
+
 `DELSEL` is built from repeated `DELBACK`/`DELFWD` rather than by moving a gap
 edge directly. Moving the edge would be O(1), but `CURLNO` and `CCOL` are
 maintained incrementally and a selection may span newlines, so letting the

@@ -25,6 +25,19 @@ marker.
 
 Both were reported from a real //e.
 
+**Changed: a selection includes the character under the cursor.**
+
+The cursor is a block sitting on a character, but a selection used to stop just
+before it. Selecting forwards therefore looked one character short, and the
+block sat on a letter that a cut was going to leave behind. Both ends are
+inclusive now: the selection is every character from where selecting began to
+where the cursor is, in either direction. A line break under the cursor is
+still left out, so selecting to the end of a line and cutting does not join it
+to the next one.
+
+This also means `OA-Space` (`Ctrl-T` on the ][+) selects the character under
+the cursor straight away, so typing right after it replaces that character.
+
 ## 1.4 — 9 September 2026
 
 **Added: the editor can be built in any language, and ships in Slovenian.**
