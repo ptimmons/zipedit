@@ -48,6 +48,34 @@ GETPOS       lda   GAPBEG
              rts
 
 *--------------------------------------
+* SELHERE -- anchor the selection at the cursor
+*--------------------------------------
+SELHERE      jsr   GETPOS
+             lda   LPOS
+             sta   SELANC
+             lda   LPOS+1
+             sta   SELANC+1
+             rts
+
+*--------------------------------------
+* HASSEL -- carry clear if something is selected. SELLEN and SELDIR are left
+*           as SELRANGE set them.
+*
+* SELACT alone does not say so: latching the mode anchors a selection that
+* stays empty until an arrow moves.
+*--------------------------------------
+HASSEL       lda   SELACT
+             beq   :no
+             jsr   SELRANGE
+             lda   SELLEN
+             ora   SELLEN+1
+             beq   :no
+             clc
+             rts
+:no          sec
+             rts
+
+*--------------------------------------
 * SELCLR -- drop the selection, staying in selection mode if it is latched
 *--------------------------------------
 SELCLR       lda   #$00
