@@ -1657,6 +1657,117 @@ assert_row "with the two lines back together"           0 "one lo"
 fi
 
 #--------------------------------------
+# Emphasis toggles, and applies to a selection.
+#
+# Ctrl-B and Ctrl-I used to wrap whatever was under the cursor in another pair
+# of markers, so a second press gave ****word**** rather than taking the bold
+# off, and a selection was ignored in favour of the word at the cursor. Both
+# were reported from a real //e.
+#
+# Everything here reads the document out of the buffer: | is the cursor, and ^
+# the selection anchor when something is selected.
+#--------------------------------------
+# doc_is <name> <expected>
+doc_is() {
+    "$VII" settle 2 >/dev/null
+    _pregap
+    : > "$TMP/post.bin"
+    [ "$_PGE" -lt 49152 ] && "$VII" dump "$_PGE" $((49152-_PGE)) 1 "$TMP/post.bin" >/dev/null
+    "$VII" dump 0x0050 4 0 "$TMP/sel.bin" >/dev/null
+    local got
+    got=$(python3 -c "
+import sys
+t=lambda d: ''.join(chr(b&0x7f) if b>=0xa0 else '\n' if b==0x8d else '~' for b in d)
+pre=t(open('$TMP/pre.bin','rb').read()); post=t(open('$TMP/post.bin','rb').read())
+s=open('$TMP/sel.bin','rb').read()
+doc=pre+post; marks={len(pre):'|'}
+anc=s[2]|(s[3]<<8)
+if s[0] and anc!=len(pre): marks[anc]='^'
+for i in sorted(marks, reverse=True): doc=doc[:i]+marks[i]+doc[i:]
+sys.stdout.write(doc)")
+    if [ "$got" = "$2" ]; then ok "$1"; else
+        bad "$1" "buffer holds [$got]" "wanted       [$2]"
+    fi
+}
+oa_space() { "$VII" caps true >/dev/null; "$VII" oa " " >/dev/null; "$VII" caps false >/dev/null; "$VII" settle 1 >/dev/null; }
+arrows() { local i; for i in $(seq 1 "$2"); do "$VII" key "$1 arrow" >/dev/null; done; "$VII" settle 2 >/dev/null; }
+
+if section "emphasis toggles"; then
+reboot_empty
+ktext "one two three"
+arrows left 8
+k ctrl B
+doc_is "Ctrl-B bolds the word at the cursor"           "one **two**| three"
+k ctrl B
+doc_is "a second Ctrl-B takes the bold off"            "one two| three"
+k ctrl I
+doc_is "Ctrl-I italicises it"                          "one *two*| three"
+k ctrl I
+doc_is "and a second Ctrl-I takes that off"            "one two| three"
+k ctrl I; k ctrl B
+doc_is "bold on top of italic makes both"              "one ***two***| three"
+k ctrl I
+doc_is "italic comes off and leaves the bold"          "one **two**| three"
+arrows left 4
+k ctrl B
+doc_is "it toggles from inside the markers too"        "one two| three"
+
+# Punctuation stays outside, so emphasis typed on the Mac toggles off as well.
+new_doc
+ktext "It ends."
+k ctrl I
+doc_is "closing punctuation stays outside the markers" "It *ends*.|"
+k ctrl I
+doc_is "and emphasis before it still toggles off"      "It ends.|"
+
+# A press with no word inserts an empty pair; another takes it away again.
+new_doc
+# Not ktext: the screen reads back with trailing spaces trimmed, so "a " would
+# never be seen to arrive. doc_is settles and reads the buffer anyway.
+"$VII" text "a " >/dev/null; "$VII" settle 2 >/dev/null
+k ctrl B
+doc_is "no word: an empty pair, cursor inside"         "a **|**"
+k ctrl I
+doc_is "italic added to the empty pair"                "a ***|***"
+k ctrl I; k ctrl B
+doc_is "and the pair toggles away"                     "a |"
+
+# Selections. Forwards, so the cursor is at the end.
+new_doc
+ktext "alpha beta gamma"
+k ctrl A
+arrows right 6
+oa_space
+arrows right 4
+k ctrl B
+doc_is "Ctrl-B bolds the selection, not the word"      "alpha **^beta|** gamma"
+k ctrl B
+doc_is "and a second press takes it off"               "alpha ^beta| gamma"
+k key esc
+
+# Selecting the markers as well as the text finds them just the same.
+k ctrl B
+doc_is "(set up: beta bold again)"                     "alpha **beta**| gamma"
+arrows left 8
+oa_space
+arrows right 8
+k ctrl B
+doc_is "a selection including the markers unbolds"     "alpha ^beta| gamma"
+k key esc
+
+# Backwards, across a word boundary, from the start of a line. $89 is Tab in
+# leading whitespace, but a selection makes it italic wherever it starts.
+k ctrl E
+oa_space
+arrows left 16
+k ctrl I
+doc_is "\$89 italicises a selection at a line start"   "*|alpha beta gamma^*"
+k ctrl B
+doc_is "and bold adds to it, the selection kept"       "***|alpha beta gamma^***"
+k key esc
+fi
+
+#--------------------------------------
 # Prompt cursor. A prompt with no cursor reads as a label rather than a field,
 # so there is a block where the next character will land. It is an inverse
 # space, which the screen text readback renders as a plain space -- these
