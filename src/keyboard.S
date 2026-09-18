@@ -247,9 +247,17 @@ ASKUNSAVED   lda   MODFLAG
 
 :ask         jsr   GETKEY
              and   #$df             ; fold case; leaves Esc alone
-             cmp   #$d3             ; S -- save first
+
+*--- THE LETTERS COME FROM THE LANGUAGE FILE, beside the sentence that offers
+*    them. They were $D3 and $C4 here, which is right while the prompt is in
+*    English and wrong the moment it is not: Slovenian discards with Z, for
+*    ZAVRZI, and a Slovenian reader pressing the key the screen names would
+*    have got nothing whatever.
+*
+*    Both are stored as capitals, which is what the fold above leaves.
+             cmp   KEYSAVE
              beq   :save
-             cmp   #$c4             ; D -- discard
+             cmp   KEYDISCARD
              beq   :discard
              cmp   #$9b             ; Esc -- carry on editing
              beq   :no

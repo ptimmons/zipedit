@@ -19,8 +19,21 @@ file that reaches the Mac says `Različica`. Two letters deviate from YUSCII on
 purpose: YUSCII puts `Š` on `[` and `ž` on a backtick, which are Markdown's link
 and code markers.
 
-The translation is by Janez Starc, who has had one pass over it. Two strings in
-it are still marked TODO because they are not his.
+The translation is by Janez Starc, who has had two passes over it. On the
+second he moved the discard key: the unsaved-changes prompt used to offer `D`,
+which carries *discard* in English and nothing at all in Slovenian, where the
+word is *zavrzi*. It now offers `Z` there.
+
+That meant the keys had to move too. `KEYSAVE` and `KEYDISCARD` are entries in
+the language file now, sitting under the two lines that name them, and the
+prompt's handler compares against those rather than against constants baked
+into `keyboard.S`. A translator who changes the sentence changes the key with
+it; the alternative was a screen naming a key the editor ignored. `S` happens
+to serve both languages -- *save*, *shrani* -- so it was only ever `D` that
+disagreed. Esc stays in the source: it is a key rather than a word.
+
+One string in the file is still marked TODO, and the word count still has two
+plural forms where Slovenian wants four.
 
 **Added: find wraps round the end of the document.**
 

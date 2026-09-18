@@ -1,16 +1,15 @@
 # ZipEdit v slovenščini.
 #
-# Machine-translated first, then corrected by Janez Starc (August 2026).
+# Machine-translated first, then corrected by Janez Starc over two passes
+# (August and September 2026).
 #
-# THREE THINGS IN HERE HAVE NOT BEEN SEEN BY A SPEAKER, and they are the whole
-# reason this file is coming back to you. Each is marked TODO where it sits:
+# Every word in here is now his. Of the three things the last round asked
+# about, two came back answered -- he rewrote CHEATTXT outright and gave
+# MSGWRAPPED an ordinary phrase -- and he moved the discard key besides.
 #
-#   CHEATTXT    "konc." -- shortened by us, not by you, to fit 80 columns
-#   MSGWRAPPED  a new string since your pass, and a guess
-#   WTAIL/WTAIL1 the word count, which cannot be right in Slovenian at all
+# ONE IS STILL OPEN, and it is marked TODO where it sits:
 #
-# Everything else is yours. Notes on the places most likely to still be wrong
-# are marked TODO below.
+#   WTAIL/WTAIL1 the word count, which no string in this file can make right
 #
 # Write real Slovenian here -- š, č, ž and all. The //e has no glyph for any
 # of them, so tools/genlang.py transliterates on the way into the assembler
@@ -33,12 +32,9 @@ UNTITLED = "BREZNASLOVA.MD"
 # do. EXACTLY 80 characters at most -- the row is 80 wide and anything longer is
 # simply cut off at the edge, mid-word.
 #
-# TODO: "konc." is OURS, not yours. Your line was 82 characters and the row is
-# 80, so "koncano" was shortened to fit -- the only place we have changed your
-# Slovenian. It was picked only because the line already abbreviates "st." the
-# same way. If those two characters are better spent elsewhere, move them:
-# anything at or under 80 builds.
-CHEATTXT = "`koda` # H1 ## H2 - seznam 1. št. - [ ] opraviti - [x] konč. > citat [link](url)"
+# Rewritten by Janez on his second pass, after the first ran to 82 characters
+# and lost "(url)" off the edge. His line is 70, so there are ten in hand.
+CHEATTXT = "`koda` #H1 ##H2 naslovi 1. št. [ ] ali [x] opravilo > citat [link] url"
 
 # --------------------------------------------------------------- the status row
 # Exactly 80 characters, and the labels must stay at these columns because the
@@ -69,12 +65,10 @@ MSGNOTFND = " NE NAJDEM"
 # Shown when a search ran off the end of the document and found its match by
 # starting again at the top.
 #
-# TODO: a guess, and the one string here nobody has checked at all. It says
-# "continued from the top". The sense wanted is that the search reached the end
-# and resumed at the beginning -- not that anything went wrong, and not that
-# the text was wrapped. If Slovenian has the ordinary word an editor would use
-# for this, it belongs here instead.
-MSGWRAPPED = " NADALJEVANO Z VRHA"
+# Was our guess, " NADALJEVANO Z VRHA"; Janez replaced it on his second pass.
+# The sense wanted is that the search reached the end and resumed at the
+# beginning -- not that anything went wrong.
+MSGWRAPPED = " NADALJUJEM IZ VRHA"
 
 MSGCOPIED = " VRSTICA KOPIRANA"
 
@@ -87,12 +81,21 @@ WTAIL1 = " BESEDA"
 WTAIL = " BESED"
 
 # ------------------------------------------------------------------- the guard
-# The key letters are NOT translated -- S, D and ESC are the keys the writer
-# presses, and renaming them here would name keys that do nothing. So the
-# Slovenian words are chosen to fit round them: Shrani, Discard -> Zavrzi.
-# TODO: D for "zavrzi" does not carry the mnemonic it does in English.
-MSGUNSAVED = " NESHRANJENE SPREMEMBE.  S = SHRANI   D = ZAVRZI   ESC = PREKLIČI"
-MSGUNSV40 = " Shranim?  S shrani  D zavrzi  Esc"
+# The key letters ARE translated, and they are two lines below. This used to
+# say the opposite: S and D were fixed in the source, and the Slovenian had to
+# be chosen to fit round them. Janez pointed out that D carries nothing in a
+# language where the word is "zavrzi", so the letters moved into this file and
+# the program now reads them from here.
+#
+# Whatever these two lines name, KEYSAVE and KEYDISCARD must match.
+MSGUNSAVED = " NESHRANJENE SPREMEMBE.  S = SHRANI   Z = ZAVRZI   ESC = PREKLIČI"
+MSGUNSV40 = " Shranim?  S shrani  Z zavrzi  Esc"
+
+# Kateri tipki ponuja vprašanje zgoraj -- ena velika črka na tipko, in morata
+# biti tisti, ki ju vrstici zgoraj imenujeta. Janez je zavrzi premaknil z D na
+# Z, ker se beseda začne z Z; to je koda, ki mu zdaj sledi.
+KEYSAVE = "S"
+KEYDISCARD = "Z"
 
 # ------------------------------------------------------------------ the splash
 # The program's name is not translated.

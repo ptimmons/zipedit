@@ -74,12 +74,27 @@ WTAIL1 = " WORD"
 WTAIL = " WORDS"
 
 # ------------------------------------------------------------------- the guard
-# Shown when something would throw away unsaved work. It has to name three
-# keys, and the keys themselves are not translated: they are what the writer
-# presses. The 40-column version is a separate string rather than a truncation,
-# because there is no way to shorten the long one that leaves it readable.
+# Shown when something would throw away unsaved work. It names three keys, two
+# of which are set a few lines below -- whatever letters these sentences offer,
+# KEYSAVE and KEYDISCARD have to agree with them. The 40-column version is a
+# separate string rather than a truncation, because there is no way to shorten
+# the long one that leaves it readable.
 MSGUNSAVED = " UNSAVED CHANGES.  S = SAVE FIRST   D = DISCARD   ESC = CANCEL"
 MSGUNSV40 = " Save first?  S save  D discard  Esc"
+
+# THE TWO KEYS THE QUESTION ABOVE OFFERS. One capital letter each, and they
+# must be the letters the two lines above actually name: a prompt that offers
+# a key the editor does not listen for is worse than one that offers nothing.
+#
+# They are here, and not in the source, because the letter belongs to the WORD
+# and the word is translated. English discards with D for DISCARD; Slovenian
+# discards with Z, for ZAVRZI. Keeping the key beside the sentence that names
+# it is what stops the two drifting apart.
+#
+# Esc is not here. It is a key rather than a word, and it cancels in every
+# language.
+KEYSAVE = "S"
+KEYDISCARD = "D"
 
 # ------------------------------------------------------------------ the splash
 # Centred by measuring the string, so a translation may be any length.

@@ -141,6 +141,28 @@ def main(argv):
                  f"ProDOS keeps letters, digits and full stops and nothing "
                  f"else, and the disk is read by other programs.")
 
+    # THE TWO KEYS THE GUARD OFFERS. These are read by the program rather than
+    # printed, so the ways they go wrong are silent ones: the comparison folds
+    # case with AND #$DF, so a lowercase letter here produces a key that can
+    # never match, and a letter the prompt does not name produces a prompt
+    # offering one key while the editor listens for another. Both build
+    # perfectly and both are only findable by pressing the key.
+    for key in ("KEYSAVE", "KEYDISCARD"):
+        k = entries.get(key, "")
+        if len(k) != 1 or not k.isascii() or not k.isalpha():
+            sys.exit(f"{path}: {key} must be a single ASCII letter, and is "
+                     f"{k!r}. It is a key the writer presses, not a word.")
+        if not k.isupper():
+            sys.exit(f"{path}: {key} is {k!r} and must be a capital. The "
+                     f"comparison folds case with AND #$DF before it gets "
+                     f"here, so a lowercase letter never matches anything.")
+        for named in ("MSGUNSAVED", "MSGUNSV40"):
+            if k not in entries.get(named, ""):
+                sys.exit(f"{path}: {key} is {k!r}, which {named} never names. "
+                         f"The prompt would offer one key while the editor "
+                         f"listened for another:\n  {named} = "
+                         f"\"{entries.get(named, '')}\"")
+
     # The header stays plain ASCII on purpose: this file is fed to Merlin32,
     # and the very characters this tool exists to translate are the ones an
     # assembler comment cannot be trusted to carry.

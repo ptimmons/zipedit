@@ -1195,6 +1195,28 @@ hardware, and the emulator cannot answer it, having synthesised the backtick
 that turned out not to exist. `make keyprobe` builds a disk that reports what
 each key really sends, and now names the six codes to check.
 
+### Keys the prompt names
+
+The unsaved-changes prompt offers two letters, and until Janez's second pass
+those letters were `$D3` and `$C4` in `keyboard.S` -- fine while the prompt
+reads `D = DISCARD` and wrong the moment it reads `Z = ZAVRZI`, which is what
+Slovenian wants, because the word is *zavrzi*. A translator could change the
+sentence and could not change the key, so the two would have disagreed and the
+screen would have named a key the editor ignored.
+
+So `KEYSAVE` and `KEYDISCARD` are entries in the language file, sitting
+directly under the two lines that offer them, and `ASKUNSAVED` compares against
+those bytes rather than against constants. Both are stored as capitals, which
+is what the `and #$df` fold in front of the comparison leaves. The letter and
+the word that names it now travel in the same file, a few lines apart, which is
+the only arrangement that stops them drifting.
+
+Esc is not in the file. It is a key rather than a word and it cancels in every
+language.
+
+This is the general shape for anything else of the kind: if the program reads a
+letter that a sentence on screen names, the letter belongs beside the sentence.
+
 ### What a translation cannot fix
 
 Slovenian counts in four forms -- 1 beseda, 2 besedi, 3-4 besede, 5+ besed --

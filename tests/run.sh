@@ -2515,7 +2515,7 @@ assert_row "and its labels are still on their columns" 23 "V:1    S:1"
 "$VII" text "abc" >/dev/null
 "$VII" line "" >/dev/null; "$VII" settle 4 >/dev/null
 snapshot
-assert_row "a new string reaches the screen translated" 23 "NADALJEVANO Z VRHA"
+assert_row "a new string reaches the screen translated" 23 "NADALJUJEM IZ VRHA"
 
 # The help screen comes from the same language file, through a different
 # generator -- and that generator uses | = ~ and @ as its own box-drawing
@@ -2542,6 +2542,34 @@ else
 fi
 "$VII" text " " >/dev/null; "$VII" text " " >/dev/null
 "$VII" caps false >/dev/null; "$VII" settle 2 >/dev/null
+
+# THE GUARD NAMES A KEY, AND THE KEY HAS TO BE THE ONE IT NAMES. English
+# discards with D, for "discard"; Slovenian discards with Z, for "zavrzi", and
+# the letters used to be constants in keyboard.S where no translation could
+# reach them. They are entries in the language file now, so this is the
+# assertion that stops them drifting apart: the screen offers Z, and Z is what
+# works. The document still has the "abc" the find test typed, so it is
+# modified and the guard will show.
+"$VII" caps true >/dev/null
+"$VII" oa "Q" >/dev/null
+"$VII" settle 3 >/dev/null
+snapshot
+assert_row "the Slovenian guard offers Z, not D" 23 "Z = ZAVRZI"
+
+# D is the ENGLISH key, and on this build it must do nothing at all. Before the
+# keys moved into the language file this is the press that discarded the
+# document -- while the screen was telling the writer to press Z.
+"$VII" text "D" >/dev/null
+"$VII" settle 3 >/dev/null
+snapshot
+assert_row "and D, which used to discard, is ignored" 23 "NESHRANJENE"
+
+"$VII" text "Z" >/dev/null
+if "$VII" await "SELECT" 45 >/dev/null; then
+    ok "and Z discards and leaves"
+else
+    bad "and Z discards and leaves" "still here: $(sed -n '24p' "$SCREEN")"
+fi
 
 # And the bytes. A paragraph of Slovenian pushed to the image and pulled back
 # has to come out the same, which is the promise the substitution rests on.
