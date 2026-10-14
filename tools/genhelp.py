@@ -146,7 +146,10 @@ P2L = [header(T("MARKDOWN"), "L"),
        header(T("CLIPBOARD"), "L"),
        entry("@-C", T("copy"),  "L"),
        entry("@-X", T("cut"),   "L"),
-       entry("@-V", T("paste"), "L")]
+       entry("@-V", T("paste"), "L"),
+       None, None, None,            # level with SCREEN on the right
+       header(T("PRINTER"), "L"),
+       entry("@-P", T("print, slot 1"), "L")]
 P2R = [header(T("SEARCH"), "R"),
        entry("@-F @-G", T("find / again"), "R"),
        entry("@-L", T("go to line"),   "R"),
@@ -304,10 +307,10 @@ P2_40 = [
     e40("ctrl-q", T("quit")),
     None,
     h40(T("SEARCH")),
-    e40("ctrl-f", T("find")),
-    e40("ctrl-g", T("find again")),
+    e40("ctrl-f g", T("find / again")),
     e40("ctrl-l", T("go to line")),
     e40("ctrl-w", T("word count")),
+    e40("esc ctrl-p", T("print")),
     e40("ctrl-p", T("this help, or esc ?")),
 ]
 

@@ -82,7 +82,7 @@ SRC2P   := src/edit2p.S
 # builds apart on the card.
 SYS2P   := ZIPEDIT.SYSTEM
 
-.PHONY: all disk run screen test clean tools pull push eject release relimage probe card plaindisk twodisk keyprobe two release2p card2p dist
+.PHONY: all disk run screen test clean tools pull push eject release relimage probe card plaindisk twodisk keyprobe prnprobe two release2p card2p dist
 
 all: $(BIN)
 
@@ -194,6 +194,18 @@ keyprobe:
 	@RELEASE=1 VOL=KEYPROBE SYS=KEYPROBE.SYSTEM $(TOOLS)/mkdisk.sh \
 		$(BUILD)/KEYPROBE.po $(BUILD)/KEYPROBE.SYSTEM >/dev/null
 	@echo "keyboard probe disk: $(BUILD)/KEYPROBE.po"
+
+# A disk that answers what is in slot 1 before the editor tries to print to
+# it: does the card speak the Pascal 1.1 protocol, or only PR#1? It prints the
+# signature, dumps the ROM, and puts two test lines on paper each way.
+prnprobe: | $(BUILD)
+	@$(MERLIN) $(ASMINC) src/prnprobe.S > $(BUILD)/prnprobe.log 2>&1 || \
+		{ echo "--- Merlin32 failed ---"; cat $(BUILD)/prnprobe.log; exit 1; }
+	@mv src/PRNPROBE.SYSTEM $(BUILD)/PRNPROBE.SYSTEM
+	@rm -f src/_FileInformation.txt
+	@RELEASE=1 VOL=PRNPROBE SYS=PRNPROBE.SYSTEM $(TOOLS)/mkdisk.sh \
+		$(BUILD)/PRNPROBE.po $(BUILD)/PRNPROBE.SYSTEM >/dev/null
+	@echo "printer probe disk: $(BUILD)/PRNPROBE.po"
 
 # A disk to hand to real hardware: editor + ProDOS + BASIC.SYSTEM, no test files.
 release: $(BIN)

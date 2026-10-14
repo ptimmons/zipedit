@@ -55,6 +55,11 @@ MSGOPEN = "OPEN: "
 MSGERR = " PRODOS ERROR $"
 HINTESC = "ESC CANCELS"
 
+# ---------------------------------------------------------------- the printer
+MSGPRINTING = "-- PRINTING --"
+MSGNOPRN = " NO PRINTER CARD IN SLOT 1"
+MSGPRSTOP = " PRINTING STOPPED"
+
 # ----------------------------------------------------------------- the editing
 MSGFIND = "FIND: "
 MSGGOTO = "GO TO LINE: "

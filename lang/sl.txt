@@ -61,6 +61,12 @@ MSGOPEN = "ODPRI: "
 MSGERR = " NAPAKA PRODOS $"
 HINTESC = "ESC PREKLIČI"
 
+# ---------------------------------------------------------------- the printer
+# TODO for Janez: a first draft, not checked by a Slovenian speaker.
+MSGPRINTING = "-- TISKAM --"
+MSGNOPRN = " V REŽI 1 NI TISKALNIŠKE KARTICE"
+MSGPRSTOP = " TISKANJE USTAVLJENO"
+
 # ----------------------------------------------------------------- the editing
 MSGFIND = "POIŠČI: "
 MSGGOTO = "NAJDI VRSTICO: "
@@ -169,6 +175,9 @@ HELP "SCREEN" = "ZASLON"
 HELP "cheat sheet" = "pregled ukazov"
 HELP "this help" = "ta pomoč"
 
+HELP "PRINTER" = "TISKALNIK"
+HELP "print, slot 1" = "natisni, reža 1"
+
 # --- and the 40-column pages, which say the same things in less room
 HELP "zipedit -- commands" = "zipedit -- ukazi"
 HELP "any key for more    1 of 2" = "tipka za več     1 od 2"
@@ -187,4 +196,5 @@ HELP "reflow para" = "preoblikuj odst."
 HELP "start, arrows paint" = "razširi izbor"
 HELP "find" = "poišči"
 HELP "find again" = "poišči znova"
+HELP "print" = "natisni"
 HELP "this help, or esc ?" = "ta pomoč, ali esc ?"

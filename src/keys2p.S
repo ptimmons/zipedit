@@ -197,6 +197,9 @@ ESCTBL
                                     ; same key on that machine.
              dfb   $a7
              da    KBACKTICK        ; Esc ' -- a backtick
+             dfb   $90
+             da    KPRINT           ; Esc Ctrl-P -- print. Not Esc P, which
+                                    ; types a capital; Ctrl-P alone is help.
              dfb   $00
 
 *--------------------------------------

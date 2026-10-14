@@ -20,6 +20,7 @@
              put   scroll
              put   select
              put   edit_ops
+             put   print               ; after the buffer driver: it reads BUFLO
              put   help
              put   helpdata        ; the Makefile picks the language
              put   lang             ; the Makefile picks the language

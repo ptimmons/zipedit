@@ -119,6 +119,8 @@ KEYTBL
              da    KWORDS           ; OA-W
              dfb   $c1,$80
              da    KSAVEAS          ; OA-A
+             dfb   $d0,$80
+             da    KPRINT           ; OA-P
              dfb   $a7,$80
              da    KBACKTICK        ; OA-' -- a backtick, which this keyboard
                                     ; cannot otherwise produce at all
