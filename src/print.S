@@ -153,6 +153,10 @@ KPRINT       lda   #<MSGPRINTING
 * reads -- while a ROM reads the same every time. A blank screen is the trap:
 * it floats as $A0 over and over, which is steady too, so a page of one
 * repeated byte does not count.
+*
+* Only the first 64 bytes are looked at. A card's ROM need not fill its page:
+* on an Epson APL card $C1C0-$C1FF floats, and a whole-page check refused it.
+* The entry PR#1 jumps into is at the start, and that is what has to be there.
 *--------------------------------------
 PRFIND       lda   PRROM+$05
              cmp   #$38
@@ -178,6 +182,7 @@ PRFIND       lda   PRROM+$05
              cmp   PRROM
              bne   :rom
              inx
+             cpx   #$40                ; the first 64 bytes only: see above
              bne   :same
 :none        sec
              rts
@@ -191,6 +196,7 @@ PRSUM        lda   #$00
              clc
 :loop        adc   PRROM,x
              inx
+             cpx   #$40                ; the first 64 bytes only: see above
              bne   :loop
              rts
 

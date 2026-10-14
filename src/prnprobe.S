@@ -146,6 +146,8 @@ PASCAL       lda   SLOTROM+$05
 * fetched that cycle, which drifts between reads. A ROM reads the same every
 * time. A blank screen is the trap -- it floats as one byte, $A0, over and
 * over, and that is steady too -- so a page of one repeated byte fails.
+* Only $C100-$C13F counts: a card's ROM need not fill the page, and on
+* PT's Epson APL card $C1C0-$C1FF floats.
 *--------------------------------------
 STABLE       jsr   SUMROM
              sta   SUM
@@ -157,6 +159,7 @@ STABLE       jsr   SUMROM
              cmp   SLOTROM
              bne   :yes
              inx
+             cpx   #$40                ; the first 64 bytes only: see above
              bne   :same
 :no          sec
              rts
@@ -168,6 +171,7 @@ SUMROM       lda   #$00
              clc
 :loop        adc   SLOTROM,x
              inx
+             cpx   #$40                ; the first 64 bytes only: see above
              bne   :loop
              rts
 
