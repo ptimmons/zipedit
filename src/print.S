@@ -29,11 +29,17 @@
 * printable half of each.
 *
 * BIT 7. Everything in the buffer is high ASCII, and an FX-80 prints $80-$FF
-* in italics. The Pascal path sends every byte with bit 7 clear. The PR#1
-* path sends it as PRHI says: set, by default, the way BASIC sends it, which
-* leaves the stripping to the card's firmware as PR#1 from BASIC always has.
-* A card that passes bit 7 through would italicise the page and turn the 6 of
-* ESC N 6 into 134, so it wants PRHI cleared. src/prnprobe.S asks the card.
+* in italics. Both paths send every byte with bit 7 clear, which is what the
+* printer wants whatever the card does with it. Leaving the stripping to the
+* firmware, the way PR#1 from BASIC does, is not safe: a Grappler+-style card
+* was seen stripping it until it was sent a DC4 (Ctrl-T) and passing it
+* through after, so the rest of the page came out of NEWPRINT missing or in
+* italics. PRHI keeps the BASIC way as a switch for a card that wants it.
+*
+* CONTROL CODES ARE NOT SAFE EITHER. Card firmware reads some of them as
+* commands to itself -- that DC4 is one, and a Grappler's Ctrl-I is another --
+* so nothing here sends a bare control code but CR, LF, FF and the parameter
+* after an ESC. Wide headings use ESC W, not SO and DC4.
 *
 * TWO WAYS IN, chosen by what the card's ROM says about itself:
 *
@@ -318,8 +324,10 @@ PRHASH       jsr   PRPEEK0
              sta   PRPOS
              lda   PRPK+1
              sta   PRPOS+1
-             lda   #$0e                ; SO: wide for the rest of the line
-             jsr   PROUT
+             lda   #'W'                ; wide on: ESC W with a binary 1,
+             jsr   PRESC2              ; which NEWPRINT's Document format
+             lda   #$01                ; drops unseen where an ASCII '1'
+             jsr   PROUT               ; would print
              lda   #'E'
              jsr   PRESC2
              lda   PRSTY
@@ -355,7 +363,9 @@ PRBRK        cmp   #HARDCR
              lda   PRSTY
              and   #$ff-PRHEAD-PRBOLD  ; the heading's emphasis, and any **
              sta   PRSTY               ; inside it, end together
-             lda   #$14                ; DC4: wide off
+             lda   #'W'                ; wide off
+             jsr   PRESC2
+             lda   #$00
              jsr   PROUT
              lda   #'F'
              jsr   PRESC2
@@ -570,16 +580,17 @@ PRCLOSE      ldx   #$00
              sta   SCRLOST
              rts
 
-*--- Two switches src/prnprobe.S has to settle on the real card.
+*--- Two switches, settled by src/prnprobe.S on a Grappler+ feeding NEWPRINT.
 *
 *    PRLF  0: send a return alone and let the card or the printer's DIP
 *          switch add the line feed. 1: a line feed after every return. Wrong
 *          one way every line prints on top of the last; wrong the other the
 *          page comes out double spaced.
-*    PRHI  what the PR#1 path ORs into every byte. $80 is what BASIC sends;
-*          $00 sends the byte exactly. The Pascal path ignores it.
+*    PRHI  what the PR#1 path ORs into every byte. $00 sends the byte
+*          exactly; $80 is what BASIC sends, and trusts the card to strip it.
+*          The Pascal path ignores it.
 PRLF         dfb   $00
-PRHI         dfb   $80
+PRHI         dfb   $00
 
 *--- $14bf-$14e0 is keyboard.S's
              dum   $14e1
@@ -598,4 +609,3 @@ PRFLG        ds    1                   ; the one PRSTY bit a marker would flip
 PRPK         ds    2                   ; where the look ahead has got
 PRSKIP       ds    2                   ; a doubled marker's partner, or 0
              dend                      ; ends at $14f3; $1500 is PRZP
-
