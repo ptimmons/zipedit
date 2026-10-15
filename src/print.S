@@ -14,9 +14,10 @@
 *
 * THE MARKDOWN IS PRINTED, NOT SHOWN. **bold** and __bold__ print emphasized,
 * *italic* and _italic_ in italics, `code` double-struck, and a line opening
-* with #s and a space prints wide and emphasized -- each marker swapped for the
-* FX-80's own code and left off the paper. So a line comes out shorter than it
-* stood on the screen, never longer, and the breaks still fall where they did.
+* with #s and a space prints as a heading of that level (PRHTAB) -- each
+* marker swapped for the FX-80's own code and left off the paper. So a line
+* comes out shorter than it stood on the screen, never longer, and the breaks
+* still fall where they did.
 * The rules are a small, safe subset of CommonMark's, in PRTEXT. Whatever they
 * do not recognise as markup prints as typed, so the worst a stray asterisk can
 * do is appear. Emphasis ends with its paragraph at the latest, so one left
@@ -246,6 +247,9 @@ PRTEXT       sta   PRCH
              lda   PRSTY
              eor   #PRCODE
              sta   PRSTY
+             and   #PRHEAD             ; a heading is double-struck already,
+             bne   :eaten              ; and ESC H would end it early
+             lda   PRSTY
              and   #PRCODE
              beq   :codeoff
              lda   #'G'                ; double-strike on
@@ -366,28 +370,35 @@ PRMARK       lda   #$00                ; no partner yet
              rts
 
 *--------------------------------------
-* PRHASH -- a # first on its line. One or more, then a space, is a heading:
-*           wide to the end of the line and emphasized, and the #s and the
-*           space are left off. Carry set if it is not one.
+* PRHASH -- a # first on its line. One or more, then a space, is a heading,
+*           printed in the style PRHTAB gives its level to the end of the
+*           line; the #s and the space are left off. Carry set if it is not
+*           one.
 *--------------------------------------
-PRHASH       jsr   PRPEEK0
+PRHASH       lda   #$00                ; the level, less one
+             sta   PRLVL
+             jsr   PRPEEK0
 :more        cmp   #$a3
              bne   :end
+             inc   PRLVL
              jsr   PRADV
              jsr   PRGET
              jmp   :more
 :end         cmp   #$a0
              bne   :no
+             lda   PRLVL               ; seven or more is not a heading
+             cmp   #6
+             bcs   :no
              lda   PRPK                ; the walk goes on after the space
              sta   PRPOS
              lda   PRPK+1
              sta   PRPOS+1
-             lda   #'W'                ; wide on: ESC W with a binary 1,
-             jsr   PRESC2              ; which NEWPRINT's Document format
-             lda   #$01                ; drops unseen where an ASCII '1'
-             jsr   PROUT               ; would print
-             lda   #'E'
-             jsr   PRESC2
+             ldx   PRLVL               ; H5 and H6 print as H4
+             cpx   #PRHMAX
+             bcc   :style
+             ldx   #PRHMAX
+:style       lda   PRHTAB,x
+             jsr   PRSEQ
              lda   PRSTY
              ora   #PRHEAD
              sta   PRSTY
@@ -421,11 +432,12 @@ PRBRK        cmp   #HARDCR
              lda   PRSTY
              and   #$ff-PRHEAD-PRBOLD  ; the heading's emphasis, and any **
              sta   PRSTY               ; inside it, end together
-             lda   #'W'                ; wide off
-             jsr   PRESC2
-             lda   #$00
-             jsr   PROUT
-             lda   #'F'
+             lda   #PRHOFF-PRSEQS      ; every heading style off at once
+             jsr   PRSEQ
+             lda   PRSTY               ; that ended an open code span's
+             and   #PRCODE             ; double-strike too
+             beq   PRLINE
+             lda   #'G'
              jsr   PRESC2
 PRLINE       lda   #$a0                ; a line starts as if after a space
              sta   PRLAST
@@ -468,6 +480,56 @@ PRADV        inc   PRPK
              lda   PRGAPE+1
              sta   PRPK+1
 :done        rts
+
+*--------------------------------------
+* PRSEQ -- send the codes at PRSEQS+A, up to the $FF that ends them
+*--------------------------------------
+PRSEQ        sta   PRIDX               ; PROUT is free with X, so the place
+:loop        ldx   PRIDX               ; is kept in memory
+             lda   PRSEQS,x
+             cmp   #$ff
+             beq   :done
+             jsr   PROUT
+             inc   PRIDX
+             jmp   :loop
+:done        rts
+
+*--- The heading styles, one per level. The FX-80 cannot emphasize elite, so
+*    H2 is double-struck alone. Expanded halves the line, to 40 characters in
+*    pica and 48 in elite, and a longer heading wraps on the paper. Each is
+*    built from single codes rather than the Master Select, ESC !, which
+*    NEWPRINT ignores, and whose parameter its Document format prints. ESC W
+*    takes a binary 1 or 0, which that format drops unseen; ESC - takes an
+*    ASCII '1' or '0', the only kind it understands. Nothing here is a bare
+*    control code: a Grappler+ takes some of those as commands to itself.
+PRHTAB       dfb   PRH1-PRSEQS
+             dfb   PRH2-PRSEQS
+             dfb   PRH3-PRSEQS
+             dfb   PRH4-PRSEQS         ; H4, H5 and H6
+PRHMAX       equ   3
+
+PRSEQS
+PRH1         hex   1b5701              ; expanded pica,
+             hex   1b47                ; double-struck
+             hex   1b45                ; and emphasized
+             dfb   $ff
+PRH2         hex   1b4d                ; expanded elite,
+             hex   1b5701
+             hex   1b47                ; double-struck
+             dfb   $ff
+PRH3         hex   1b47                ; pica, double-struck,
+             hex   1b45                ; emphasized
+             hex   1b2d31              ; and underlined
+             dfb   $ff
+PRH4         hex   1b47                ; pica, double-struck
+             hex   1b45                ; and emphasized
+             dfb   $ff
+PRHOFF       hex   1b5700              ; not expanded,
+             hex   1b50                ; pica,
+             hex   1b48                ; single-struck,
+             hex   1b46                ; not emphasized
+             hex   1b2d30              ; and not underlined
+             dfb   $ff
 
 *--------------------------------------
 * PRWORD -- carry set if A is a letter or a digit
@@ -670,4 +732,6 @@ PRNXT        ds    1                   ; the character after a marker
 PRFLG        ds    1                   ; the one PRSTY bit a marker would flip
 PRPK         ds    2                   ; where the look ahead has got
 PRSKIP       ds    2                   ; a doubled marker's partner, or 0
-             dend                      ; ends at $14f3; $1500 is PRZP
+PRLVL        ds    1                   ; a heading's level, less one
+PRIDX        ds    1                   ; how far PRSEQ has got
+             dend                      ; ends at $14f5; $1500 is PRZP
