@@ -29,12 +29,15 @@
 * printable half of each.
 *
 * BIT 7. Everything in the buffer is high ASCII, and an FX-80 prints $80-$FF
-* in italics. Both paths send every byte with bit 7 clear, which is what the
-* printer wants whatever the card does with it. Leaving the stripping to the
-* firmware, the way PR#1 from BASIC does, is not safe: a Grappler+-style card
-* was seen stripping it until it was sent a DC4 (Ctrl-T) and passing it
-* through after, so the rest of the page came out of NEWPRINT missing or in
-* italics. PRHI keeps the BASIC way as a switch for a card that wants it.
+* in italics. The Pascal path sends every byte with bit 7 clear. The PR#1
+* path sends it as PRHI says: set, by default, the way BASIC sends it, which
+* leaves the stripping to the card's firmware as PR#1 from BASIC always has.
+* A Grappler+-style card feeding NEWPRINT was seen to need exactly that: sent
+* with bit 7 clear, it put a space after most control bytes, which split
+* every ESC from its command. Sent set, it strips the bit and passes the
+* codes through clean -- until it is sent a DC4, after which it passes bit 7
+* through too and the rest of the page came out missing or in italics. So
+* PRHI stays $80, and the DC4 is never sent; see below.
 *
 * CONTROL CODES ARE NOT SAFE EITHER. Card firmware reads some of them as
 * commands to itself -- that DC4 is one, and a Grappler's Ctrl-I is another --
@@ -586,11 +589,11 @@ PRCLOSE      ldx   #$00
 *          switch add the line feed. 1: a line feed after every return. Wrong
 *          one way every line prints on top of the last; wrong the other the
 *          page comes out double spaced.
-*    PRHI  what the PR#1 path ORs into every byte. $00 sends the byte
-*          exactly; $80 is what BASIC sends, and trusts the card to strip it.
-*          The Pascal path ignores it.
+*    PRHI  what the PR#1 path ORs into every byte. $80 is what BASIC sends,
+*          and trusts the card to strip it; $00 sends the byte exactly. The
+*          Pascal path ignores it.
 PRLF         dfb   $00
-PRHI         dfb   $00
+PRHI         dfb   $80
 
 *--- $14bf-$14e0 is keyboard.S's
              dum   $14e1
