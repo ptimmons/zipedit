@@ -105,11 +105,13 @@ KPRINT       lda   #<MSGPRINTING
 
 :found       jsr   PROPEN
 
-*--- A NUL first, which a printer ignores. A Grappler+ slips a space in after
-*    the first byte it sends after the Apple boots, and that space, between
-*    ESC and @, made the reset a stray "@" at the top of the page. After a NUL
-*    it is only a space, ahead of the reset.
-             lda   #$00
+*--- A DEL first, which a printer takes as "rub out the last character" and
+*    so, with nothing on the line yet, as nothing. A Grappler+ slips a space
+*    in after the first byte it sends after the Apple boots, and that space,
+*    between ESC and @, made the reset a stray "@" at the top of the page.
+*    After a DEL it is only a space, ahead of the reset. A NUL does not do:
+*    the card does not count it as the first byte.
+             lda   #$7f
              jsr   PROUT
 
 *--- ESC @ resets the printer and makes this line the top of the page; ESC N 6
