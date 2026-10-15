@@ -6,12 +6,27 @@
 * do; anything in slot 1 that is not a printer card is refused before it is
 * called, as far as that can be told -- see PRFIND.
 *
-* WHAT GOES ON THE PAPER IS WHAT IS ON THE SCREEN. Saving puts only the
-* writer's own returns in the file and leaves the wrapping to whoever reads it.
-* A printer is not a reader that wraps, and the editor already laid every line
-* out against a margin at column 76 -- inside the FX-80's 80 -- so every break
-* in the buffer, all three kinds, becomes a return here. Paper matches the
-* screen line for line.
+* WHAT GOES ON THE PAPER IS WHAT IS ON THE SCREEN, LINE FOR LINE. Saving puts
+* only the writer's own returns in the file and leaves the wrapping to whoever
+* reads it. A printer is not a reader that wraps, and the editor already laid
+* every line out against a margin at column 76 -- inside the FX-80's 80 -- so
+* every break in the buffer, all three kinds, becomes a return here.
+*
+* THE MARKDOWN IS PRINTED, NOT SHOWN. **bold** and __bold__ print emphasized,
+* *italic* and _italic_ in italics, `code` double-struck, and a line opening
+* with #s and a space prints wide and emphasized -- each marker swapped for the
+* FX-80's own code and left off the paper. So a line comes out shorter than it
+* stood on the screen, never longer, and the breaks still fall where they did.
+* The rules are a small, safe subset of CommonMark's, in PRTEXT. Whatever they
+* do not recognise as markup prints as typed, so the worst a stray asterisk can
+* do is appear. Emphasis ends with its paragraph at the latest, so one left
+* open cannot run on through the document; code does not, because a fence
+* spans paragraphs.
+*
+* NEWPRINT, a printer emulator, draws all of this with Printer set to FX-80
+* and Format to Graphics. Its Document format draws bold and italics and drops
+* the wide codes; its ASCII format acts on no codes at all, and shows the
+* printable half of each.
 *
 * BIT 7. Everything in the buffer is high ASCII, and an FX-80 prints $80-$FF
 * in italics. The Pascal path sends every byte with bit 7 clear. The PR#1
@@ -45,6 +60,10 @@
 PRSLOT       equ   $c1                 ; slot 1, as a ROM page
 PRROM        equ   $c100
 PRESC        equ   $1b
+PRITAL       equ   $01                 ; PRSTY: what the markup has open
+PRBOLD       equ   $02
+PRCODE       equ   $04
+PRHEAD       equ   $08
 CSWL         equ   $36                 ; the monitor's output hook
 WNDLFT       equ   $20                 ; the monitor's text window, and its
 WNDWDTH      equ   $21                 ; cursor, which the PR#1 path's echo
@@ -92,8 +111,10 @@ KPRINT       lda   #<MSGPRINTING
 
              lda   #$00
              sta   PRPOS
+             sta   PRSTY               ; no emphasis open
              lda   #BUFLO
              sta   PRPOS+1
+             jsr   PRLINE              ; the document opens on a fresh line
 
 :loop        lda   PRPOS               ; standing at the gap? jump over it
              cmp   PRGAPB
@@ -119,6 +140,7 @@ KPRINT       lda   #<MSGPRINTING
              bcs   :text
 
 *--- a break of any kind: a return, and a chance to stop
+             jsr   PRBRK
              jsr   PRNL
              lda   KBD
              cmp   #$9b                ; Esc, waiting in the latch
@@ -131,18 +153,279 @@ KPRINT       lda   #<MSGPRINTING
              sta   STRPTR+1
              jmp   SHOWMSG
 
-:text        and   #$7f
+:text        jsr   PRTEXT              ; markup becomes codes; carry set
+             bcc   :next               ; means print it as typed
+             and   #$7f
              jsr   PROUT
 :next        inc   PRPOS
              bne   :loop
              inc   PRPOS+1
              jmp   :loop
 
-:end         jsr   PRNL                ; a last line with no return of its own
+:end         lda   #HARDCR             ; a last line with no return of its
+             jsr   PRBRK               ; own, and anything left open closed
+             jsr   PRNL
              lda   #$0c                ; form feed: the page out of the printer
              jsr   PROUT
              jsr   PRCLOSE
              jmp   RESTORESTAT         ; the busy notice was the feedback
+
+*--------------------------------------
+* PRTEXT -- one text byte, in A, from the walk at PRPOS. Carry clear: it was
+*           markup, and has been dealt with. Carry set: print A as it is.
+*           A marker that takes its partner with it moves PRPOS onto the
+*           partner, and the walk steps past.
+*--------------------------------------
+PRTEXT       sta   PRCH
+             cmp   #BACKTICK           ; code: everything inside it as typed
+             bne   :notcode
+             lda   PRSTY
+             eor   #PRCODE
+             sta   PRSTY
+             and   #PRCODE
+             beq   :codeoff
+             lda   #'G'                ; double-strike on
+             bne   :code
+:codeoff     lda   #'H'                ; and off
+:code        jsr   PRESC2
+             jmp   :eaten
+
+:notcode     lda   PRSTY
+             and   #PRCODE
+             bne   :lit
+             lda   PRCH
+             cmp   #$aa                ; *
+             beq   :mark
+             cmp   #$df                ; _
+             beq   :mark
+             cmp   #$a3                ; #, which only counts first on a line
+             bne   :lit
+             lda   PRBOL
+             beq   :lit
+             jsr   PRHASH
+             bcs   :lit
+             bcc   :eaten
+:mark        jsr   PRMARK
+             bcs   :lit
+
+:eaten       jsr   :seen
+             clc
+             rts
+:lit         jsr   :seen
+             lda   PRCH
+             sec
+             rts
+:seen        lda   PRCH                ; what the next marker looks back at
+             sta   PRLAST
+             lda   #$00
+             sta   PRBOL
+             rts
+
+*--------------------------------------
+* PRMARK -- an * or _ at PRPOS, and in PRCH. Doubled it is bold, single it is
+*           italic. It opens if nothing of its kind is open and the next
+*           character is not a space or a break; it closes if one is open and
+*           the last character was not a space. An _ also has to stand at the
+*           edge of a word, so snake_case is left alone. Anything else is not
+*           markup, and carry comes back set.
+*--------------------------------------
+PRMARK       lda   #$00                ; no partner yet
+             sta   PRSKIP+1
+             jsr   PRPEEK0             ; the character after it
+             cmp   PRCH
+             bne   :single
+             lda   PRPK                ; doubled: the partner is there
+             sta   PRSKIP
+             lda   PRPK+1
+             sta   PRSKIP+1
+             jsr   PRADV
+             jsr   PRGET
+             sta   PRNXT
+             lda   PRSTY               ; a heading is emphasized already: the
+             and   #PRHEAD             ; pair is only dropped
+             bne   :skip
+             lda   #PRBOLD
+             bne   :which
+:single      sta   PRNXT
+             lda   #PRITAL
+:which       sta   PRFLG
+             and   PRSTY
+             beq   :open
+
+             lda   PRLAST              ; closing, after a space? not markup
+             cmp   #TEXTLO+1
+             bcc   :lit
+             lda   PRCH
+             cmp   #$df
+             bne   :close
+             lda   PRNXT               ; _ closing inside a word
+             jsr   PRWORD
+             bcs   :lit
+:close       lda   PRSTY
+             eor   PRFLG
+             sta   PRSTY
+             lda   PRFLG
+             cmp   #PRBOLD
+             beq   :boff
+             lda   #'5'                ; italic off
+             bne   :send
+:boff        lda   #'F'                ; emphasized off
+             bne   :send
+
+:open        lda   PRNXT               ; opening before a space or a break?
+             cmp   #TEXTLO+1
+             bcc   :lit
+             lda   PRCH
+             cmp   #$df
+             bne   :on
+             lda   PRLAST              ; _ opening inside a word
+             jsr   PRWORD
+             bcs   :lit
+:on          lda   PRSTY
+             ora   PRFLG
+             sta   PRSTY
+             lda   PRFLG
+             cmp   #PRBOLD
+             beq   :bon
+             lda   #'4'                ; italic on
+             bne   :send
+:bon         lda   #'E'                ; emphasized on
+:send        jsr   PRESC2
+:skip        lda   PRSKIP+1            ; a partner to step over? No buffer
+             beq   :done               ; position is in page zero
+             sta   PRPOS+1
+             lda   PRSKIP
+             sta   PRPOS
+:done        clc
+             rts
+:lit         sec
+             rts
+
+*--------------------------------------
+* PRHASH -- a # first on its line. One or more, then a space, is a heading:
+*           wide to the end of the line and emphasized, and the #s and the
+*           space are left off. Carry set if it is not one.
+*--------------------------------------
+PRHASH       jsr   PRPEEK0
+:more        cmp   #$a3
+             bne   :end
+             jsr   PRADV
+             jsr   PRGET
+             jmp   :more
+:end         cmp   #$a0
+             bne   :no
+             lda   PRPK                ; the walk goes on after the space
+             sta   PRPOS
+             lda   PRPK+1
+             sta   PRPOS+1
+             lda   #$0e                ; SO: wide for the rest of the line
+             jsr   PROUT
+             lda   #'E'
+             jsr   PRESC2
+             lda   PRSTY
+             ora   #PRHEAD
+             sta   PRSTY
+             clc
+             rts
+:no          sec
+             rts
+
+*--------------------------------------
+* PRBRK -- a break, in A, is about to be printed. A heading ends with its line
+*          and emphasis with its paragraph, whatever the markup said.
+*--------------------------------------
+PRBRK        cmp   #HARDCR
+             bne   :head
+             lda   PRSTY
+             and   #PRITAL
+             beq   :bold
+             lda   #'5'
+             jsr   PRESC2
+:bold        lda   PRSTY
+             and   #PRBOLD
+             beq   :para
+             lda   #'F'
+             jsr   PRESC2
+:para        lda   PRSTY
+             and   #PRCODE+PRHEAD      ; code runs on: a fence spans paragraphs
+             sta   PRSTY
+:head        lda   PRSTY
+             and   #PRHEAD
+             beq   PRLINE
+             lda   PRSTY
+             and   #$ff-PRHEAD-PRBOLD  ; the heading's emphasis, and any **
+             sta   PRSTY               ; inside it, end together
+             lda   #$14                ; DC4: wide off
+             jsr   PROUT
+             lda   #'F'
+             jsr   PRESC2
+PRLINE       lda   #$a0                ; a line starts as if after a space
+             sta   PRLAST
+             lda   #$01
+             sta   PRBOL
+             rts
+
+*--------------------------------------
+* PRPEEK0 -- the character after PRPOS, with PRPK left on it
+* PRADV   -- PRPK on to the next character, over the gap
+* PRGET   -- the character at PRPK; a return past the end of the buffer
+*--------------------------------------
+PRPEEK0      lda   PRPOS
+             sta   PRPK
+             lda   PRPOS+1
+             sta   PRPK+1
+             jsr   PRADV
+PRGET        lda   PRPK+1
+             cmp   #BUFHI
+             bcc   :read
+             lda   #HARDCR
+             rts
+:read        sta   AUXPTR+1            ; the walk puts AUXPTR back for itself
+             lda   PRPK
+             sta   AUXPTR
+             ldy   #$00
+             jmp   AUXRD
+
+PRADV        inc   PRPK
+             bne   :gap
+             inc   PRPK+1
+:gap         lda   PRPK
+             cmp   PRGAPB
+             bne   :done
+             lda   PRPK+1
+             cmp   PRGAPB+1
+             bne   :done
+             lda   PRGAPE
+             sta   PRPK
+             lda   PRGAPE+1
+             sta   PRPK+1
+:done        rts
+
+*--------------------------------------
+* PRWORD -- carry set if A is a letter or a digit
+*--------------------------------------
+PRWORD       cmp   #$b0
+             bcc   :no
+             cmp   #$ba
+             bcc   :yes
+             and   #$df                ; lower case folded onto upper
+             cmp   #$c1
+             bcc   :no
+             cmp   #$db
+             bcs   :no
+:yes         sec
+             rts
+:no          clc
+             rts
+
+*--------------------------------------
+* PRESC2 -- ESC and then the byte in A
+*--------------------------------------
+PRESC2       pha
+             lda   #PRESC
+             jsr   PROUT
+             pla
+             jmp   PROUT
 
 *--------------------------------------
 * PRFIND -- what is in slot 1? Carry clear and PRMODE set if it can be driven.
@@ -305,4 +588,14 @@ PRVEC        ds    2                   ; the Pascal entry being called
 PRPOS        ds    2                   ; how far the walk has got
 PRGAPB       ds    2                   ; GAPBEG and GAPEND, copied out of zero
 PRGAPE       ds    2                   ; page before the firmware runs
-             dend
+PRSTY        ds    1                   ; what is open: PRITAL PRBOLD PRCODE
+                                       ; PRHEAD
+PRCH         ds    1                   ; the character PRTEXT was given
+PRLAST       ds    1                   ; and the one before it
+PRBOL        ds    1                   ; nonzero: nothing yet on this line
+PRNXT        ds    1                   ; the character after a marker
+PRFLG        ds    1                   ; the one PRSTY bit a marker would flip
+PRPK         ds    2                   ; where the look ahead has got
+PRSKIP       ds    2                   ; a doubled marker's partner, or 0
+             dend                      ; ends at $14f3; $1500 is PRZP
+
