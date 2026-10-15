@@ -28,6 +28,10 @@
 * the wide codes; its ASCII format acts on no codes at all, and shows the
 * printable half of each.
 *
+* PLAIN, the other answer to PRASK, prints the text exactly as typed, markers
+* and all, and sends no codes whatever: for a printer that is not an FX-80, or
+* a page meant to show the Markdown itself.
+*
 * BIT 7. Everything in the buffer is high ASCII, and an FX-80 prints $80-$FF
 * in italics. The Pascal path sends every byte with bit 7 clear. The PR#1
 * path sends it as PRHI says: set, by default, the way BASIC sends it, which
@@ -88,14 +92,13 @@ PRZP         equ   $1500               ; a page, for the zero page while
                                        ; all three builds.
 
 *--------------------------------------
-* KPRINT -- print the whole document
+* KPRINT -- print the whole document, fancy or plain
+*
+* The card is looked for before anything is asked: there is no point choosing
+* how to print on a printer that is not there. Then PRASK puts the choice on
+* the status row, the way ASKUNSAVED does for quitting.
 *--------------------------------------
-KPRINT       lda   #<MSGPRINTING
-             sta   STRPTR
-             lda   #>MSGPRINTING
-             sta   STRPTR+1
-             jsr   SHOWBUSY
-             jsr   PRFIND
+KPRINT       jsr   PRFIND
              bcc   :found
              lda   #<MSGNOPRN
              sta   STRPTR
@@ -103,7 +106,16 @@ KPRINT       lda   #<MSGPRINTING
              sta   STRPTR+1
              jmp   SHOWMSG
 
-:found       jsr   PROPEN
+:found       jsr   PRASK
+             bcs   :go
+             jmp   RESTORESTAT         ; Esc: nothing printed
+
+:go          lda   #<MSGPRINTING
+             sta   STRPTR
+             lda   #>MSGPRINTING
+             sta   STRPTR+1
+             jsr   SHOWBUSY
+             jsr   PROPEN
 
 *--- A DEL first, which a printer takes as "rub out the last character" and
 *    so, with nothing on the line yet, as nothing. A Grappler+ slips a space
@@ -115,7 +127,10 @@ KPRINT       lda   #<MSGPRINTING
              jsr   PROUT
 
 *--- ESC @ resets the printer and makes this line the top of the page; ESC N 6
-*    skips the last six lines of each page, over the perforation.
+*    skips the last six lines of each page, over the perforation. Plain sends
+*    no codes at all, so it suits any printer and any NEWPRINT view.
+             lda   PRPLAIN
+             bne   :nosetup
              lda   #PRESC
              jsr   PROUT
              lda   #$40                ; @
@@ -127,7 +142,7 @@ KPRINT       lda   #<MSGPRINTING
              lda   #$06
              jsr   PROUT
 
-             lda   #$00
+:nosetup     lda   #$00
              sta   PRPOS
              sta   PRSTY               ; no emphasis open
              lda   #BUFLO
@@ -171,9 +186,11 @@ KPRINT       lda   #<MSGPRINTING
              sta   STRPTR+1
              jmp   SHOWMSG
 
-:text        jsr   PRTEXT              ; markup becomes codes; carry set
+:text        ldx   PRPLAIN             ; plain: every byte as typed, markup
+             bne   :plain              ; and all
+             jsr   PRTEXT              ; markup becomes codes; carry set
              bcc   :next               ; means print it as typed
-             and   #$7f
+:plain       and   #$7f
              jsr   PROUT
 :next        inc   PRPOS
              bne   :loop
@@ -187,6 +204,35 @@ KPRINT       lda   #<MSGPRINTING
              jsr   PROUT
              jsr   PRCLOSE
              jmp   RESTORESTAT         ; the busy notice was the feedback
+
+*--------------------------------------
+* PRASK -- fancy or plain? F or P, Return for the same as last time, Esc to
+*          think again. Carry set to print, clear if cancelled. The keys are
+*          not translated, like ASKUNSAVED's: they are what gets pressed.
+*--------------------------------------
+PRASK        lda   #<MSGPRASK          ; 39 columns or fewer, so one string
+             sta   STRPTR              ; does for both screen widths
+             lda   #>MSGPRASK
+             sta   STRPTR+1
+             jsr   SHOWMSG
+:ask         jsr   GETKEY
+             and   #$df                ; fold case; leaves Esc and Return alone
+             cmp   #$c6                ; F -- fancy
+             beq   :fancy
+             cmp   #$d0                ; P -- plain
+             beq   :plain
+             cmp   #$8d                ; Return -- whichever it was last time
+             beq   :go
+             cmp   #$9b                ; Esc -- carry on editing
+             bne   :ask
+             clc
+             rts
+:fancy       lda   #$00
+             beq   :set
+:plain       lda   #$01
+:set         sta   PRPLAIN
+:go          sec
+             rts
 
 *--------------------------------------
 * PRTEXT -- one text byte, in A, from the walk at PRPOS. Carry clear: it was
@@ -603,6 +649,10 @@ PRCLOSE      ldx   #$00
 *          Pascal path ignores it.
 PRLF         dfb   $00
 PRHI         dfb   $80
+
+*--- The last choice PRASK was given: 0 fancy, nonzero plain. Kept in the code,
+*    not the scratch block, so Return can repeat it for the rest of the session.
+PRPLAIN      dfb   $00
 
 *--- $14bf-$14e0 is keyboard.S's
              dum   $14e1

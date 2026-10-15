@@ -59,6 +59,9 @@ HINTESC = "ESC CANCELS"
 MSGPRINTING = "-- PRINTING --"
 MSGNOPRN = " NO PRINTER CARD IN SLOT 1"
 MSGPRSTOP = " PRINTING STOPPED"
+# Fancy or plain. The key letters are not translated. 39 columns at most: the
+# one string serves the 40-column screen too.
+MSGPRASK = " PRINT:  F FANCY   P PLAIN   ESC CANCEL"
 
 # ----------------------------------------------------------------- the editing
 MSGFIND = "FIND: "

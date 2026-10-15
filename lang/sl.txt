@@ -66,6 +66,8 @@ HINTESC = "ESC PREKLIČI"
 MSGPRINTING = "-- TISKAM --"
 MSGNOPRN = " V REŽI 1 NI TISKALNIŠKE KARTICE"
 MSGPRSTOP = " TISKANJE USTAVLJENO"
+# TODO for Janez: F and P stay, being the keys; 39 columns at most.
+MSGPRASK = " TISKAM?  F OBLIKOVANO  P NAVADNO  ESC"
 
 # ----------------------------------------------------------------- the editing
 MSGFIND = "POIŠČI: "

@@ -506,7 +506,7 @@ That preserves both behaviours in the contexts where each is actually wanted.
 | OA-N | new document — asks first if there are unsaved changes |
 | OA-O / OA-S | open / save — save reuses the document's own file |
 | OA-A | save as — asks for a name, and the document takes it |
-| OA-P | print to a parallel card in slot 1 (Esc Ctrl-P on the ][+) -- see `src/print.S` |
+| OA-P | print to a parallel card in slot 1 (Esc Ctrl-P on the ][+): asks F fancy (FX-80 codes for the Markdown), P plain (as typed, no codes), Return as last time, Esc cancel -- see `src/print.S` |
 | OA-? | keyboard help, two pages -- a key turns, a key leaves |
 | OA-/ | toggle cheat sheet |
 | OA-Q | quit — asks first if the document has unsaved changes |
