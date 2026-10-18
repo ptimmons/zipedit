@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4 — 9 September 2026
+## 1.4 — 18 October 2026
 
 **Added: the editor can be built in any language, and ships in Slovenian.**
 
