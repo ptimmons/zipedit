@@ -434,7 +434,7 @@ if section "splash screen"; then
 snapshot
 assert_centred "the name is centred"                  10 "ZipEdit"
 assert_centred "the version is centred below it"      12 "Version 1.4"
-assert_centred "the date is centred below that"       14 "August, 2026"
+assert_centred "the date is centred below that"       14 "October, 2026"
 assert_blank   "with a blank line between them"       13
 # The Open Apple is a MouseText glyph, which reads back as "A".
 assert_centred "the help hint is centred"             20 "A-? to get help"
@@ -2483,9 +2483,11 @@ else
 snapshot
 
 # The name is not translated; everything round it is. ~ is c-with-a-caron.
-# The translator folded the date into the version line and spent the line it
-# freed on a credit, so row 14 is a name rather than a month.
-assert_centred "the version line is Slovenian"   12 "Razli~ica 1.4 - avgust 2026"
+# The version line carries no date -- it follows the English pattern, which
+# keeps the month in SPLDATE -- but the line that holds the month in English
+# holds the translator's credit here, which is what he spent it on. So row 14
+# is a name rather than a month, in this language only.
+assert_centred "the version line is Slovenian"   12 "Razli~ica 1.4"
 assert_centred "and the translator is credited"  14 "Ben Long, prevod Janez Starc"
 assert_row     "and the prompt"                  21 "pritisnite tipko"
 

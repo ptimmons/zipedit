@@ -139,7 +139,17 @@ relimage:
 
 # A second image whose editor is patched to draw the original //e's glyphs.
 # Virtual ][ has no unenhanced //e, so this is how that path gets tested.
+#
+# LANGUAGE-AWARE, like IMAGE and IMG2P above, and for a sharper reason than
+# tidiness: this was one name for every language, so `make LANG=sl release`
+# wrote a Slovenian editor into the file `dist` copies to ZIPEDIT.po. Build
+# the two in the wrong order and the archive ships a Slovenian disk labelled
+# English, with nothing to say so.
+ifeq ($(LANG),en)
 RELIMG    := $(BUILD)/ZIPEDIT-REL.po
+else
+RELIMG    := $(BUILD)/ZIPEDIT-$(LANGUP)-REL.po
+endif
 PLAINBIN  := $(BUILD)/ZIPEDIT-PLAIN.SYSTEM
 PLAINIMG  := $(BUILD)/ZIPEDIT-PLAIN.po
 
@@ -247,10 +257,19 @@ dist: release release2p
 		{ echo "lang/en.txt does not say Version $(VERSION)" >&2; exit 1; }
 	@grep '^SPLVER' lang/sl.txt | grep -q '$(VERSION)' || \
 		{ echo "lang/sl.txt's SPLVER does not carry $(VERSION)" >&2; exit 1; }
+# AND THE SLOVENIAN PAIR, built here rather than left to whoever makes the
+# release to remember. 1.4's headline is that the editor ships in Slovenian,
+# and this target packaged two English disks and nothing else -- so the
+# feature would have shipped as a sentence in a changelog and no disk anybody
+# could boot. English first: these overwrite the generated src/lang.S, and the
+# English images are already written by the time they do.
+	@$(MAKE) --no-print-directory LANG=sl release release2p >/dev/null
 	@rm -rf $(DIST) $(ZIP)
 	@mkdir -p $(DIST)
 	@cp $(BUILD)/ZIPEDIT-REL.po $(DIST)/ZIPEDIT.po
 	@cp $(IMG2P) $(DIST)/ZIPEDIT2P.po
+	@cp $(BUILD)/ZIPEDIT-SL-REL.po $(DIST)/ZIPEDIT-SL.po
+	@cp $(BUILD)/ZIPEDIT2P-SL.po $(DIST)/ZIPEDIT2P-SL.po
 	@cp $(TOOLS)/xfer.sh LICENSE $(DIST)/
 	@sed 's/@VERSION@/$(VERSION)/g' docs/release-README.txt > $(DIST)/README.txt
 	@cd $(BUILD) && zip -qr ZipEdit-$(VERSION).zip ZipEdit-$(VERSION)

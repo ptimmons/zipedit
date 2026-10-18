@@ -1,20 +1,25 @@
 ZipEdit @VERSION@
 A Markdown editor for the Apple II
-August 2026
+October 2026
 
 
 WHAT IS IN THIS FOLDER
 
-  ZIPEDIT.po   For an Enhanced Apple //e with 128K. 80 columns, and
-               room for about seven thousand words.
-  ZIPEDIT2P.po For an Apple ][+ with 64K. 40 columns, and room for
-               about three thousand words. It also runs on a //e.
-  xfer.sh      A shell script for moving files between a disk image
-               and your Mac.
-  README.txt   This file.
+  ZIPEDIT.po      For an Enhanced Apple //e with 128K. 80 columns,
+                  and room for about seven thousand words.
+  ZIPEDIT2P.po    For an Apple ][+ with 64K. 40 columns, and room
+                  for about three thousand words. Runs on a //e too.
 
-  Both are bootable ProDOS 8 disk images, 143K, in 5.25-inch format.
-  Take the one that matches your machine; they are the same editor.
+  ZIPEDIT-SL.po   The same two, in Slovenian.
+  ZIPEDIT2P-SL.po
+
+  xfer.sh         A shell script for moving files between a disk
+                  image and your Mac.
+  README.txt      This file.
+
+  All four are bootable ProDOS 8 disk images, 143K, in 5.25-inch
+  format. Take the one that matches your machine and your language;
+  they are the same editor.
 
 
 WHICH ONE DO I WANT
@@ -27,6 +32,25 @@ WHICH ONE DO I WANT
 
   If you are not sure, try ZIPEDIT.po first. A machine that cannot run
   it will not get as far as the splash screen, and nothing is harmed.
+
+
+THE SLOVENIAN DISKS
+
+  Translated by Janez Starc. Everything the editor says is in
+  Slovenian: the splash, the status row, both pages of help, every
+  prompt and every message.
+
+  The //e's character generator has no glyphs for c-caron, s-caron or
+  z-caron, so on screen they appear as ~ { } and their capitals as ^ [
+  ]. This is the YUSCII convention, and it is only how they are drawn:
+  xfer.sh turns them into proper UTF-8 on the way to your Mac, so a
+  file that reads Razli~ica on the Apple reads Razlicica -- with the
+  caron -- everywhere else. Run it with XLANG=sl to get that.
+
+  One known limit: Slovenian counts words in four forms and the editor
+  has room for two. It says BESEDA for one and BESED for the rest, so
+  one word and five or more are right, and two, three and four are
+  not. Fixing it means changing the editor, not the translation.
 
 
 RUNNING IT
